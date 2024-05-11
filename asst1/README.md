@@ -113,12 +113,27 @@ The output of the program will tell you if your implementation generates correct
 
 **What you need to do:**
 
-1.  Implement a vectorized version of `clampedExpSerial` in `clampedExpVector` . Your implementation 
-should work with any combination of input array size (`N`) and vector width (`VECTOR_WIDTH`). 
-2.  Run `./myexp -s 10000` and sweep the vector width from 2, 4, 8, to 16. Record the resulting vector 
-utilization. You can do this by changing the `#define VECTOR_WIDTH` value in `CS149intrin.h`. 
-Does the vector utilization increase, decrease or stay the same as `VECTOR_WIDTH` changes? Why?
-3.  _Extra credit: (1 point)_ Implement a vectorized version of `arraySumSerial` in `arraySumVector`. Your implementation may assume that `VECTOR_WIDTH` is a factor of the input array size `N`. Whereas the serial implementation runs in `O(N)` time, your implementation should aim for runtime of `(N / VECTOR_WIDTH + VECTOR_WIDTH)` or even `(N / VECTOR_WIDTH + log2(VECTOR_WIDTH))`  You may find the `hadd` and `interleave` operations useful.
+1. Implement a vectorized version of `clampedExpSerial` in `clampedExpVector` . Your implementation 
+   should work with any combination of input array size (`N`) and vector width (`VECTOR_WIDTH`). 
+
+   Answer: see code in `main.cpp`. 
+
+2. Run `./myexp -s 10000` and sweep the vector width from 2, 4, 8, to 16. Record the resulting vector 
+   utilization. You can do this by changing the `#define VECTOR_WIDTH` value in `CS149intrin.h`. 
+   Does the vector utilization increase, decrease or stay the same as `VECTOR_WIDTH` changes? Why?
+
+   Answer: the vector utilization decrease as vector width increases. This is because the computation of a vector is done only when all elements are done. With a wider vector, there is more chance to have an element whose `exponents[i]` is much larger than other elements, which lets other elements to "wait" for it. 
+
+   | Vector Width | Vector Utilization |
+   | ------------ | ------------------ |
+   | 2            | 87.8%              |
+   | 4            | 82.5%              |
+   | 8            | 79.8%              |
+   | 16           | 78.5%              |
+
+3. _Extra credit: (1 point)_ Implement a vectorized version of `arraySumSerial` in `arraySumVector`. Your implementation may assume that `VECTOR_WIDTH` is a factor of the input array size `N`. Whereas the serial implementation runs in `O(N)` time, your implementation should aim for runtime of `(N / VECTOR_WIDTH + VECTOR_WIDTH)` or even `(N / VECTOR_WIDTH + log2(VECTOR_WIDTH))`  You may find the `hadd` and `interleave` operations useful.
+
+   Answer: see code in `main.cpp` . 
 
 ## Program 3: Parallel Fractal Generation Using ISPC (20 points) ##
 
@@ -188,70 +203,30 @@ Before proceeding, you are encouraged to familiarize yourself with ISPC language
 
 1.  Compile and run the program mandelbrot ispc. __The ISPC compiler is currently configured to emit 8-wide AVX2 vector instructions.__  What is the maximum speedup you expect given what you know about these CPUs? Why might the number you observe be less than this ideal? (Hint: Consider the characteristics of the computation you are performing? Describe the parts of the image that present challenges for SIMD execution? Comparing the performance of rendering the different views of the Mandelbrot set may help confirm your hypothesis.).  
 
-  We remind you that for the code described in this subsection, the ISPC
-  compiler maps gangs of program instances to SIMD instructions executed
-  on a single core. This parallelization scheme differs from that of
-  Program 1, where speedup was achieved by running threads on multiple
-  cores.
+  We remind you that for the code described in this subsection, the ISPC compiler maps gangs of program instances to SIMD instructions executed on a single core. This parallelization scheme differs from that of Program 1, where speedup was achieved by running threads on multiple cores.
 
 If you look into detailed technical material about the CPUs in the myth machines, you will find there are a complicated set of rules about how many scalar and vector instructions can be run per clock.  For the purposes of this assignment, you can assume that there are about as many 8-wide vector execution units as there are scalar execution units for floating point math.   
 
 ### Program 3, Part 2: ISPC Tasks (10 of 20 points) ###
 
-ISPCs SPMD execution model and mechanisms like `foreach` facilitate the creation
-of programs that utilize SIMD processing. The language also provides an additional
-mechanism utilizing multiple cores in an ISPC computation. This mechanism is
-launching _ISPC tasks_.
+ISPCs SPMD execution model and mechanisms like `foreach` facilitate the creation of programs that utilize SIMD processing. The language also provides an additional mechanism utilizing multiple cores in an ISPC computation. This mechanism is launching _ISPC tasks_.
 
-See the `launch[2]` command in the function `mandelbrot_ispc_withtasks`. This
-command launches two tasks. Each task defines a computation that will be
-executed by a gang of ISPC program instances. As given by the function
-`mandelbrot_ispc_task`, each task computes a region of the final image. Similar
-to how the `foreach` construct defines loop iterations that can be carried out
-in any order (and in parallel by ISPC program instances, the tasks created by
-this launch operation can be processed in any order (and in parallel on
-different CPU cores).
+See the `launch[2]` command in the function `mandelbrot_ispc_withtasks`. This command launches two tasks. Each task defines a computation that will be executed by a gang of ISPC program instances. As given by the function `mandelbrot_ispc_task`, each task computes a region of the final image. Similar to how the `foreach` construct defines loop iterations that can be carried out in any order (and in parallel by ISPC program instances, the tasks created by this launch operation can be processed in any order (and in parallel on different CPU cores).
 
 **What you need to do:**
 
-1.  Run `mandelbrot_ispc` with the parameter `--tasks`. What speedup do you
-    observe on view 1? What is the speedup over the version of `mandelbrot_ispc` that
-    does not partition that computation into tasks?
-2.  There is a simple way to improve the performance of
-    `mandelbrot_ispc --tasks` by changing the number of tasks the code
-    creates. By only changing code in the function
-    `mandelbrot_ispc_withtasks()`, you should be able to achieve
-    performance that exceeds the sequential version of the code by over 32 times!
-    How did you determine how many tasks to create? Why does the
-    number you chose work best?
-3.  _Extra Credit: (2 points)_ What are differences between the thread
-    abstraction (used in Program 1) and the ISPC task abstraction? There
-    are some obvious differences in semantics between the (create/join
-    and (launch/sync) mechanisms, but the implications of these differences
-    are more subtle. Here's a thought experiment to guide your answer: what
-    happens when you launch 10,000 ISPC tasks? What happens when you launch
-    10,000 threads? (For this thought experiment, please discuss in the general case
+1.  Run `mandelbrot_ispc` with the parameter `--tasks`. What speedup do you observe on view 1? What is the speedup over the version of `mandelbrot_ispc` that does not partition that computation into tasks?
+2.  There is a simple way to improve the performance of `mandelbrot_ispc --tasks` by changing the number of tasks the code creates. By only changing code in the function `mandelbrot_ispc_withtasks()`, you should be able to achieve performance that exceeds the sequential version of the code by over 32 times! How did you determine how many tasks to create? Why does the number you chose work best?
+3.  _Extra Credit: (2 points)_ What are differences between the thread abstraction (used in Program 1) and the ISPC task abstraction? There are some obvious differences in semantics between the (create/join and (launch/sync) mechanisms, but the implications of these differences are more subtle. Here's a thought experiment to guide your answer: what happens when you launch 10,000 ISPC tasks? What happens when you launch 10,000 threads? (For this thought experiment, please discuss in the general case
   - i.e. don't tie your discussion to this given mandelbrot program.)
 
-_The smart-thinking student's question_: Hey wait! Why are there two different
-mechanisms (`foreach` and `launch`) for expressing independent, parallelizable
-work to the ISPC system? Couldn't the system just partition the many iterations
-of `foreach` across all cores and also emit the appropriate SIMD code for the
-cores?
+_The smart-thinking student's question_: Hey wait! Why are there two different mechanisms (`foreach` and `launch`) for expressing independent, parallelizable work to the ISPC system? Couldn't the system just partition the many iterations of `foreach` across all cores and also emit the appropriate SIMD code for the cores?
 
-_Answer_: Great question! And there are a lot of possible answers. Come to
-office hours.
+_Answer_: Great question! And there are a lot of possible answers. Come to office hours.
 
 ## Program 4: Iterative `sqrt` (15 points) ##
 
-Program 4 is an ISPC program that computes the square root of 20 million
-random numbers between 0 and 3. It uses a fast, iterative implementation of
-square root that uses Newton's method to solve the equation ${\frac{1}{x^2}} - S = 0$.
-The value 1.0 is used as the initial guess in this implementation. The graph below shows the 
-number of iterations required for `sqrt` to converge to an accurate solution 
-for values in the (0-3) range. (The implementation does not converge for 
-inputs outside this range). Notice that the speed of convergence depends on the 
-accuracy of the initial guess.
+Program 4 is an ISPC program that computes the square root of 20 million random numbers between 0 and 3. It uses a fast, iterative implementation of square root that uses Newton's method to solve the equation ${\frac{1}{x^2}} - S = 0$. The value 1.0 is used as the initial guess in this implementation. The graph below shows the number of iterations required for `sqrt` to converge to an accurate solution for values in the (0-3) range. (The implementation does not converge for inputs outside this range). Notice that the speed of convergence depends on the accuracy of the initial guess.
 
 Note: This problem is a review to double-check your understanding, as it covers similar concepts as programs 2 and 3.
 
@@ -259,40 +234,24 @@ Note: This problem is a review to double-check your understanding, as it covers 
 
 **What you need to do:**
 
-1.  Build and run `sqrt`. Report the ISPC implementation speedup for 
-    single CPU core (no tasks) and when using all cores (with tasks). What 
-    is the speedup due to SIMD parallelization? What is the speedup due to 
-    multi-core parallelization?
-2.  Modify the contents of the array values to improve the relative speedup 
-    of the ISPC implementations. Construct a specifc input that __maximizes speedup over the sequential version of the code__ and report the resulting speedup achieved (for both the with- and without-tasks ISPC implementations). Does your modification improve SIMD speedup?
+1.  Build and run `sqrt`. Report the ISPC implementation speedup for single CPU core (no tasks) and when using all cores (with tasks). What is the speedup due to SIMD parallelization? What is the speedup due to multi-core parallelization?
+2.  Modify the contents of the array values to improve the relative speedup of the ISPC implementations. Construct a specifc input that __maximizes speedup over the sequential version of the code__ and report the resulting speedup achieved (for both the with- and without-tasks ISPC implementations). Does your modification improve SIMD speedup?
     Does it improve multi-core speedup (i.e., the benefit of moving from ISPC without-tasks to ISPC with tasks)? Please explain why.
 3.  Construct a specific input for `sqrt` that __minimizes speedup for ISPC (without-tasks) over the sequential version of the code__. Describe this input, describe why you chose it, and report the resulting relative performance of the ISPC implementations. What is the reason for the loss in efficiency? 
     __(keep in mind we are using the `--target=avx2` option for ISPC, which generates 8-wide SIMD instructions)__. 
-4.  _Extra Credit: (up to 2 points)_ Write your own version of the `sqrt` 
-     function manually using AVX2 intrinsics. To get credit your 
-    implementation should be nearly as fast (or faster) than the binary 
-    produced using ISPC. You may find the [Intel Intrinsics Guide](https://software.intel.com/sites/landingpage/IntrinsicsGuide/) 
-    very helpful.
+4.  _Extra Credit: (up to 2 points)_ Write your own version of the `sqrt` function manually using AVX2 intrinsics. To get credit your implementation should be nearly as fast (or faster) than the binary produced using ISPC. You may find the [Intel Intrinsics Guide](https://software.intel.com/sites/landingpage/IntrinsicsGuide/) very helpful.
 
 ## Program 5: BLAS `saxpy` (10 points) ##
 
-Program 5 is an implementation of the saxpy routine in the BLAS (Basic Linear
-Algebra Subproblems) library that is widely used (and heavily optimized) on 
-many systems. `saxpy` computes the simple operation `result = scale*X+Y`, where `X`, `Y`, 
-and `result` are vectors of `N` elements (in Program 5, `N` = 20 million) and `scale` is a scalar. Note that 
-`saxpy` performs two math operations (one multiply, one add) for every three 
-elements used. `saxpy` is a *trivially parallelizable computation* and features predictable, regular data access and predictable execution cost.
+Program 5 is an implementation of the saxpy routine in the BLAS (Basic Linear Algebra Subproblems) library that is widely used (and heavily optimized) on many systems. `saxpy` computes the simple operation `result = scale*X+Y`, where `X`, `Y`, 
+and `result` are vectors of `N` elements (in Program 5, `N` = 20 million) and `scale` is a scalar. Note that `saxpy` performs two math operations (one multiply, one add) for every three elements used. `saxpy` is a *trivially parallelizable computation* and features predictable, regular data access and predictable execution cost.
 
 **What you need to do:**
 
-1.  Compile and run `saxpy`. The program will report the performance of
-    ISPC (without tasks) and ISPC (with tasks) implementations of saxpy. What 
-    speedup from using ISPC with tasks do you observe? Explain the performance of this program.
+1.  Compile and run `saxpy`. The program will report the performance of ISPC (without tasks) and ISPC (with tasks) implementations of saxpy. What speedup from using ISPC with tasks do you observe? Explain the performance of this program.
     Do you think it can be substantially improved? (For example, could you rewrite the code to achieve near linear speedup? Yes or No? Please justify your answer.)
 2. __Extra Credit:__ (1 point) Note that the total memory bandwidth consumed computation in `main.cpp` is `TOTAL_BYTES = 4 * N * sizeof(float);`.  Even though `saxpy` loads one element from X, one element from Y, and writes one element to `result` the multiplier by 4 is correct.  Why is this the case? (Hint, think about how CPU caches work.)
-3. __Extra Credit:__ (points handled on a case-by-case basis) Improve the performance of `saxpy`.
-    We're looking for a significant speedup here, not just a few percentage 
-    points. If successful, describe how you did it and what a best-possible implementation on these systems might achieve. Also, if successful, come tell the staff, we'll be interested. ;-)
+3.  __Extra Credit:__ (points handled on a case-by-case basis) Improve the performance of `saxpy`. We're looking for a significant speedup here, not just a few percentage points. If successful, describe how you did it and what a best-possible implementation on these systems might achieve. Also, if successful, come tell the staff, we'll be interested. ;-)
 
 Notes: Some students have gotten hung up on this question (thinking too hard) in the past. We expect a simple answer, but the results from running this problem might trigger more questions in your head.  Feel encouraged to come talk to the staff.
 
