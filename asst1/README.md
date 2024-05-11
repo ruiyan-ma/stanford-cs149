@@ -80,11 +80,11 @@ Your job is to parallelize the computation of the images using [std::thread](htt
 
    Answer: runtime of each thread in view 1, with 3 threads. We can see thread 1 runs slower because it takes the middle block of the image. 
 
-   ![view 1 time](handout-images/view 1 time.png)
+   ![view1time](handout-images/view1_time.png)
 
    Runtime of each thread in view 2, with 3 threads. We can see thread 0 runs slower because it takes the top block of the image. 
 
-   ![view 2 time](handout-images/view 2 time.png)
+   ![view2time](handout-images/view2_time.png)
 
 4. Modify the mapping of work to threads to achieve to improve speedup to at __about 7-8x on both views__ of the Mandelbrot set (if you're above 7x that's fine, don't sweat it). You may not use any synchronization between threads in your solution. We are expecting you to come up with a single work decomposition policy that will work well for all thread counts---hard coding a solution specific to each configuration is not allowed! (Hint: There is a very simple static assignment that will achieve this goal, and no communication/synchronization among threads is necessary.). In your writeup, describe your approach to parallelization and report the final 8-thread speedup obtained. 
 
