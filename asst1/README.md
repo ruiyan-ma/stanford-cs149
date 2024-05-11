@@ -11,23 +11,17 @@ This assignment is intended to help you develop an understanding of the two prim
 1. SIMD execution within a single processing core
 2. Parallel execution using multiple cores (You'll see effects of Intel Hyper-threading as well.)
 
-You will also gain experience measuring and reasoning about the
-performance of parallel programs (a challenging, but important, skill you will
-use throughout this class). This assignment involves only a small amount of
-programming, but a lot of analysis!
+You will also gain experience measuring and reasoning about the performance of parallel programs (a challenging, but important, skill you will use throughout this class). This assignment involves only a small amount of programming, but a lot of analysis!
 
 ## Environment Setup ##
 
 __You will need to run code on the new myth machines for this assignment__
 (Hostnames for these machines are `myth[51-66].stanford.edu`). If for some reason you do not have a home directory on the myth machines, submit a HelpSU ticket [here](https://stanford.service-now.com/it_services?id=sc_cat_item&sys_id=cab169801bd918d0685d4377cc4bcbe0).
 
-These machines contain four-core 4.2 GHz Intel Core i7 processors (although dynamic frequency scaling can take them to 4.5 GHz when the chip decides it is useful and possible to do so). Each core in the processor supports two hardware threads (Intel calls this "Hyper-Threading") and the cores can execute AVX2 vector instructions which describe
-simultaneous execution of the same eight-wide operation on multiple single-precision data
-values. For the curious, a complete specification for this CPU can be found at 
+These machines contain four-core 4.2 GHz Intel Core i7 processors (although dynamic frequency scaling can take them to 4.5 GHz when the chip decides it is useful and possible to do so). Each core in the processor supports two hardware threads (Intel calls this "Hyper-Threading") and the cores can execute AVX2 vector instructions which describe simultaneous execution of the same eight-wide operation on multiple single-precision data values. For the curious, a complete specification for this CPU can be found at 
 <https://ark.intel.com/products/97129/Intel-Core-i7-7700K-Processor-8M-Cache-up-to-4-50-GHz->. Students that want to dig deeper might enjoy [this writeup](https://en.wikichip.org/wiki/intel/microarchitectures/kaby_lake).
 
-Note: For grading purposes, we expect you to report on the performance of code run on the Stanford myth machines, however
-for kicks, you may also want to run the programs in this assignment on your own machine. (You will first need to install the Intel SPMD Program Compiler (ISPC) available here: <http://ispc.github.io/>). Feel free to include your findings from running code on other machines in your report as well, just be very clear what machine you were running on. 
+Note: For grading purposes, we expect you to report on the performance of code run on the Stanford myth machines, however for kicks, you may also want to run the programs in this assignment on your own machine. (You will first need to install the Intel SPMD Program Compiler (ISPC) available here: <http://ispc.github.io/>). Feel free to include your findings from running code on other machines in your report as well, just be very clear what machine you were running on. 
 
 To get started:
 
@@ -53,87 +47,69 @@ If you are using csh, you'll update your `PATH` using `setenv`.  A quick Google 
 
 ## Program 1: Parallel Fractal Generation Using Threads (20 points) ##
 
-Build and run the code in the `prog1_mandelbrot_threads/` directory of
-the code base. (Type `make` to build, and `./mandelbrot` to run it.)
-This program produces the image file `mandelbrot-serial.ppm`, which is a visualization of a famous set of
-complex numbers called the Mandelbrot set. Most platforms have a .ppm
-view. To view the resulting images remotely, first make sure that you have _X server_. No downloads are needed
-for Linux systems. However, for Mac you can use [Xquartz](https://www.xquartz.org/) and 
-for Windows you can use [VcXsrv](https://sourceforge.net/projects/vcxsrv/).
-After you have SSH X-Forwarding support, make sure you `ssh -Y` onto a myth machine and
-you can then view the images using the `display` command. As you can see in the images below, the
-result is a familiar and beautiful fractal.  Each pixel in the image
-corresponds to a value in the complex plane, and the brightness of
-each pixel is proportional to the computational cost of determining
-whether the value is contained in the Mandelbrot set. To get image 2,
-use the command option `--view 2`.  (See function `mandelbrotSerial()`
-defined in `mandelbrotSerial.cpp`). You can learn more about the
-definition of the Mandelbrot set at
-<http://en.wikipedia.org/wiki/Mandelbrot_set>.
+Build and run the code in the `prog1_mandelbrot_threads/` directory of the code base. (Type `make` to build, and `./mandelbrot` to run it.) This program produces the image file `mandelbrot-serial.ppm`, which is a visualization of a famous set of complex numbers called the Mandelbrot set. Most platforms have a .ppm
+view. To view the resulting images remotely, first make sure that you have _X server_. No downloads are needed for Linux systems. However, for Mac you can use [Xquartz](https://www.xquartz.org/) and for Windows you can use [VcXsrv](https://sourceforge.net/projects/vcxsrv/).
+After you have SSH X-Forwarding support, make sure you `ssh -Y` onto a myth machine and you can then view the images using the `display` command. As you can see in the images below, the result is a familiar and beautiful fractal.  Each pixel in the image corresponds to a value in the complex plane, and the brightness of each pixel is proportional to the computational cost of determining whether the value is contained in the Mandelbrot set. To get image 2, use the command option `--view 2`.  (See function `mandelbrotSerial()` defined in `mandelbrotSerial.cpp`). You can learn more about the
+definition of the Mandelbrot set at <http://en.wikipedia.org/wiki/Mandelbrot_set>.
 
 
 ![Mandelbrot Set](handout-images/mandelbrot_viz.jpg "A visualization of two views of the Mandelbrot set. The cost of computing each pixel is proportional to its brightness. When running programs 1 and 3, you can use the command line option `--view 2` to set output to be view 2.")
 
-Your job is to parallelize the computation of the images using 
-[std::thread](https://en.cppreference.com/w/cpp/thread/thread). Starter
-code that spawns one additional thread is provided in the function
-`mandelbrotThread()` located in `mandelbrotThread.cpp`. In this function, the
-main application thread creates another additional thread using the constructor
-`std::thread(function, args...)` It waits for this thread to complete by calling
-`join` on the thread object.
-Currently the launched thread does not do any computation and returns immediately.
-You should add code to `workerThreadStart` function to accomplish this task.
-You will not need to make use of any other std::thread API calls in this assignment.
+Your job is to parallelize the computation of the images using [std::thread](https://en.cppreference.com/w/cpp/thread/thread). Starter code that spawns one additional thread is provided in the function `mandelbrotThread()` located in `mandelbrotThread.cpp`. In this function, the main application thread creates another additional thread using the constructor
+`std::thread(function, args...)` It waits for this thread to complete by calling `join` on the thread object. Currently the launched thread does not do any computation and returns immediately. You should add code to `workerThreadStart` function to accomplish this task. You will not need to make use of any other std::thread API calls in this assignment.
 
 **What you need to do:**
 
-1.  Modify the starter code to parallelize the Mandelbrot generation using 
- two processors. Specifically, compute the top half of the image in
-  thread 0, and the bottom half of the image in thread 1. This type
-    of problem decomposition is referred to as _spatial decomposition_ since
-  different spatial regions of the image are computed by different processors.
-2.  Extend your code to use 2, 3, 4, 5, 6, 7, and 8 threads, partitioning the image
-  generation work accordingly (threads should get blocks of the image). Note that the processor only has four cores but each
-  core supports two hyper-threads, so it can execute a total of eight threads interleaved on its execution contents.
-  In your write-up, produce a graph of __speedup compared to the reference sequential implementation__ as a function of the number of threads used __FOR VIEW 1__. Is speedup linear in the number of threads used? In your writeup hypothesize why this is (or is not) the case? (you may also wish to produce a graph for VIEW 2 to help you come up with a good answer. Hint: take a careful look at the three-thread datapoint.)
-3.  To confirm (or disprove) your hypothesis, measure the amount of time
-  each thread requires to complete its work by inserting timing code at
-  the beginning and end of `workerThreadStart()`. How do your measurements
-  explain the speedup graph you previously created?
-4.  Modify the mapping of work to threads to achieve to improve speedup to
-  at __about 7-8x on both views__ of the Mandelbrot set (if you're above 7x that's fine, don't sweat it). You may not use any
-  synchronization between threads in your solution. We are expecting you to come up with a single work decomposition policy that will work well for all thread counts---hard coding a solution specific to each configuration is not allowed! (Hint: There is a very simple static
-  assignment that will achieve this goal, and no communication/synchronization
-  among threads is necessary.). In your writeup, describe your approach to parallelization
-  and report the final 8-thread speedup obtained. 
+1. Modify the starter code to parallelize the Mandelbrot generation using two processors. Specifically, compute the top half of the image in thread 0, and the bottom half of the image in thread 1. This type of problem decomposition is referred to as _spatial decomposition_ since different spatial regions of the image are computed by different processors.
+
+   Answer: see code in `mandelbrotThread.cpp`. 
+
+2. Extend your code to use 2, 3, 4, 5, 6, 7, and 8 threads, partitioning the image generation work accordingly (threads should get blocks of the image). Note that the processor only has four cores but each core supports two hyper-threads, so it can execute a total of eight threads interleaved on its execution contents. In your write-up, produce a graph of __speedup compared to the reference sequential implementation__ as a function of the number of threads used __FOR VIEW 1__. Is speedup linear in the number of threads used? In your writeup hypothesize why this is (or is not) the case? (you may also wish to produce a graph for VIEW 2 to help you come up with a good answer. Hint: take a careful look at the three-thread datapoint.)
+
+   Answer: speedup graph as follows. 
+
+   ![speedup](/Users/ruiyan/edu/arch/149/repo/asst1/images/speedup.png)
+
+   In general, the speedup is linear in the number of threads. However, we can find that when the number of threads goes from 2 to 3, the speedup actually goes down. This is because the workload distribution between different threads is imbalanced. Since we use blocked assignment, with k threads, the image is partitioned into k blocks horizontally. For view 1 situation, when we have 3 threads, one of them must take the middle block which obviously needs more computation (since it has more while points). This thread will be slower than the other two threads, even slower than when running with only 2 threads. This explains why the speedup goes down when we goes from 2 threads to 3 threads. 
+
+   Because of the same reason, for the view 2 situation, the thread which takes the top block of the image (with more white points) will run slower than others. 
+
+   ![views](/Users/ruiyan/edu/arch/149/repo/asst1/images/views.png)
+
+3. To confirm (or disprove) your hypothesis, measure the amount of time each thread requires to complete its work by inserting timing code at the beginning and end of `workerThreadStart()`. How do your measurements explain the speedup graph you previously created? 
+
+   Answer: runtime of each thread in view 1, with 3 threads. We can see thread 1 runs slower because it takes the middle block of the image. 
+
+   ![view 1 time](/Users/ruiyan/edu/arch/149/repo/asst1/images/view 1 time.png)
+
+   Runtime of each thread in view 2, with 3 threads. We can see thread 0 runs slower because it takes the top block of the image. 
+
+   ![view 2 time](/Users/ruiyan/edu/arch/149/repo/asst1/images/view 2 time.png)
+
+4. Modify the mapping of work to threads to achieve to improve speedup to at __about 7-8x on both views__ of the Mandelbrot set (if you're above 7x that's fine, don't sweat it). You may not use any synchronization between threads in your solution. We are expecting you to come up with a single work decomposition policy that will work well for all thread counts---hard coding a solution specific to each configuration is not allowed! (Hint: There is a very simple static assignment that will achieve this goal, and no communication/synchronization among threads is necessary.). In your writeup, describe your approach to parallelization and report the final 8-thread speedup obtained. 
+
+   Answer: use interleaved assignment instead of blocked assignment. 
+
+   ![speedup_int](/Users/ruiyan/edu/arch/149/repo/asst1/images/speedup_int.png)
+
 5. Now run your improved code with 16 threads. Is performance noticably greater than when running with eight threads? Why or why not? 
-  
+
+   Answer: the performance is not noticably greater than when running with 8 threads. This is because the CPU only has 8 execution contexts in total, limiting the speedup to 8 times. 
+
 ## Program 2: Vectorizing Code Using SIMD Intrinsics (20 points) ##
 
-Take a look at the function `clampedExpSerial` in `prog2_vecintrin/main.cpp` of the
-Assignment 1 code base.  The `clampedExp()` function raises `values[i]` to the power given by `exponents[i]` for all elements of the input array and clamps the resulting values at 9.999999.  In program 2, your job is to vectorize this piece of code so it can be run on a machine with SIMD vector instructions.
+Take a look at the function `clampedExpSerial` in `prog2_vecintrin/main.cpp` of the Assignment 1 code base.  The `clampedExp()` function raises `values[i]` to the power given by `exponents[i]` for all elements of the input array and clamps the resulting values at 9.999999.  In program 2, your job is to vectorize this piece of code so it can be run on a machine with SIMD vector instructions.
 
-However, rather than craft an implementation using SSE or AVX2 vector intrinsics that map to real SIMD vector instructions on modern CPUs, to make things a little easier, we're asking you to implement your version using CS149's "fake vector intrinsics" defined in `CS149intrin.h`.   The `CS149intrin.h` library provides you with a set of vector instructions that operate
-on vector values and/or vector masks. (These functions don't translate to real CPU vector instructions, instead we simulate these operations for you in our library, and provide feedback that makes for easier debugging.)  As an example of using the CS149 intrinsics, a vectorized version of the `abs()` function is given in `main.cpp`. This example contains some basic vector loads and stores and manipulates mask registers.  Note that the `abs()` example is only a simple example, and in fact the code does not correctly handle all inputs! (We will let you figure out why!) You may wish to read through all the comments and function definitions in `CS149intrin.h` to know what operations are available to you. 
+However, rather than craft an implementation using SSE or AVX2 vector intrinsics that map to real SIMD vector instructions on modern CPUs, to make things a little easier, we're asking you to implement your version using CS149's "fake vector intrinsics" defined in `CS149intrin.h`.   The `CS149intrin.h` library provides you with a set of vector instructions that operate on vector values and/or vector masks. (These functions don't translate to real CPU vector instructions, instead we simulate these operations for you in our library, and provide feedback that makes for easier debugging.)  As an example of using the CS149 intrinsics, a vectorized version of the `abs()` function is given in `main.cpp`. This example contains some basic vector loads and stores and manipulates mask registers.  Note that the `abs()` example is only a simple example, and in fact the code does not correctly handle all inputs! (We will let you figure out why!) You may wish to read through all the comments and function definitions in `CS149intrin.h` to know what operations are available to you. 
 
 Here are few hints to help you in your implementation:
 
--  Every vector instruction is subject to an optional mask parameter.  The mask parameter defines which lanes whose output is "masked" for this operation. A 0 in the mask indicates a lane is masked, and so its value will not be overwritten by the results of the vector operation. If no mask is specified in the operation, no lanes are masked. (Note this equivalent to providing a mask of all ones.) 
-   *Hint:* Your solution will need to use multiple mask registers and various mask operations provided in the library.
+-  Every vector instruction is subject to an optional mask parameter.  The mask parameter defines which lanes whose output is "masked" for this operation. A 0 in the mask indicates a lane is masked, and so its value will not be overwritten by the results of the vector operation. If no mask is specified in the operation, no lanes are masked. (Note this equivalent to providing a mask of all ones.) *Hint:* Your solution will need to use multiple mask registers and various mask operations provided in the library.
 -  *Hint:* Use `_cs149_cntbits` function helpful in this problem.
--  Consider what might happen if the total number of loop iterations is not a multiple of SIMD vector width. We suggest you test 
-your code with `./myexp -s 3`. *Hint:* You might find `_cs149_init_ones` helpful.
--  *Hint:* Use `./myexp -l` to print a log of executed vector instruction at the end. 
-Use function `addUserLog()` to add customized debug information in log. Feel free to add additional 
-`CS149Logger.printLog()` to help you debug.
+-  Consider what might happen if the total number of loop iterations is not a multiple of SIMD vector width. We suggest you test your code with `./myexp -s 3`. *Hint:* You might find `_cs149_init_ones` helpful.
+-  *Hint:* Use `./myexp -l` to print a log of executed vector instruction at the end. Use function `addUserLog()` to add customized debug information in log. Feel free to add additional `CS149Logger.printLog()` to help you debug.
 
-The output of the program will tell you if your implementation generates correct output. If there
-are incorrect results, the program will print the first one it finds and print out a table of
-function inputs and outputs. Your function's output is after "output = ", which should match with 
-the results after "gold = ". The program also prints out a list of statistics describing utilization of the CS149 fake vector
-units. You should consider the performance of your implementation to be the value "Total Vector 
-Instructions". (You can assume every CS149 fake vector instruction takes one cycle on the CS149 fake SIMD CPU.) "Vector Utilization" 
-shows the percentage of vector lanes that are enabled. 
+The output of the program will tell you if your implementation generates correct output. If there are incorrect results, the program will print the first one it finds and print out a table of function inputs and outputs. Your function's output is after "output = ", which should match with the results after "gold = ". The program also prints out a list of statistics describing utilization of the CS149 fake vector units. You should consider the performance of your implementation to be the value "Total Vector Instructions". (You can assume every CS149 fake vector instruction takes one cycle on the CS149 fake SIMD CPU.) "Vector Utilization" shows the percentage of vector lanes that are enabled. 
 
 **What you need to do:**
 
@@ -148,53 +124,20 @@ Does the vector utilization increase, decrease or stay the same as `VECTOR_WIDTH
 
 Now that you're comfortable with SIMD execution, we'll return to parallel Mandelbrot fractal generation (like in program 1). Like Program 1, Program 3 computes a mandelbrot fractal image, but it achieves even greater speedups by utilizing both the CPU's four cores and the SIMD execution units within each core.
 
-In Program 1, you parallelized image generation by creating one thread
-for each processing core in the system. Then, you assigned parts of
-the computation to each of these concurrently executing
-threads. (Since threads were one-to-one with processing cores in
-Program 1, you effectively assigned work explicitly to cores.) Instead
-of specifying a specific mapping of computations to concurrently
-executing threads, Program 3 uses ISPC language constructs to describe
-*independent computations*. These computations may be executed in
-parallel without violating program correctness (and indeed they
-will!). In the case of the Mandelbrot image, computing the value of
-each pixel is an independent computation. With this information, the
-ISPC compiler and runtime system take on the responsibility of
-generating a program that utilizes the CPU's collection of parallel
-execution resources as efficiently as possible.
+In Program 1, you parallelized image generation by creating one thread for each processing core in the system. Then, you assigned parts of the computation to each of these concurrently executing threads. (Since threads were one-to-one with processing cores in Program 1, you effectively assigned work explicitly to cores.) Instead of specifying a specific mapping of computations to concurrently executing threads, Program 3 uses ISPC language constructs to describe *independent computations*. These computations may be executed in parallel without violating program correctness (and indeed they will!). In the case of the Mandelbrot image, computing the value of each pixel is an independent computation. With this information, the ISPC compiler and runtime system take on the responsibility of generating a program that utilizes the CPU's collection of parallel execution resources as efficiently as possible.
 
-You will make a simple fix to Program 3 which is written in a combination of
-C++ and ISPC (the error causes a performance problem, not a correctness one).
-With the correct fix, you should observe performance that is over 32 times
-greater than that of the original sequential Mandelbrot implementation from
-`mandelbrotSerial()`.
+You will make a simple fix to Program 3 which is written in a combination of C++ and ISPC (the error causes a performance problem, not a correctness one). With the correct fix, you should observe performance that is over 32 times greater than that of the original sequential Mandelbrot implementation from `mandelbrotSerial()`.
 
 
 ### Program 3, Part 1. A Few ISPC Basics (10 of 20 points) ###
 
-When reading ISPC code, you must keep in mind that although the code appears
-much like C/C++ code, the ISPC execution model differs from that of standard
-C/C++. In contrast to C, multiple program instances of an ISPC program are
-always executed in parallel on the CPU's SIMD execution units. The number of
-program instances executed simultaneously is determined by the compiler (and
-chosen specifically for the underlying machine). This number of concurrent
-instances is available to the ISPC programmer via the built-in variable
-`programCount`. ISPC code can reference its own program instance identifier via
-the built-in `programIndex`. Thus, a call from C code to an ISPC function can
-be thought of as spawning a group of concurrent ISPC program instances
-(referred to in the ISPC documentation as a gang). The gang of instances
-runs to completion, then control returns back to the calling C code.
+When reading ISPC code, you must keep in mind that although the code appears much like C/C++ code, the ISPC execution model differs from that of standard C/C++. In contrast to C, multiple program instances of an ISPC program are always executed in parallel on the CPU's SIMD execution units. The number of program instances executed simultaneously is determined by the compiler (and chosen specifically for the underlying machine). This number of concurrent instances is available to the ISPC programmer via the built-in variable `programCount`. ISPC code can reference its own program instance identifier via the built-in `programIndex`. Thus, a call from C code to an ISPC function can be thought of as spawning a group of concurrent ISPC program instances (referred to in the ISPC documentation as a gang). The gang of instances runs to completion, then control returns back to the calling C code.
 
 __Stop. This is your friendly instructor. Please read the preceding paragraph again. Trust me.__
 
-As an example, the following program uses a combination of regular C code and ISPC
-code to add two 1024-element vectors. As we discussed in class, since each
-instance in a gang is independent and performing the exact
-same program logic, execution can be accelerated via
-implementation using SIMD instructions.
+As an example, the following program uses a combination of regular C code and ISPC code to add two 1024-element vectors. As we discussed in class, since each instance in a gang is independent and performing the exact same program logic, execution can be accelerated via implementation using SIMD instructions.
 
-A simple ISPC program is given below. The following C code will call the
-following ISPC code:
+A simple ISPC program is given below. The following C code will call the following ISPC code:
 
     ------------------------------------------------------------------------
     C program code: myprogram.cpp
@@ -203,11 +146,11 @@ following ISPC code:
     float a[TOTAL_VALUES];
     float b[TOTAL_VALUES];
     float c[TOTAL_VALUES]
- 
+     
     // Initialize arrays a and b here.
      
     sum(TOTAL_VALUES, a, b, c);
- 
+     
     // Upon return from sum, result of a + b is stored in c.
 
 The corresponding ISPC code:
@@ -224,21 +167,9 @@ The corresponding ISPC code:
       }
     }
 
-The ISPC program code above interleaves the processing of array elements among
-program instances. Note the similarity to Program 1, where you statically
-assigned parts of the image to threads.
+The ISPC program code above interleaves the processing of array elements among program instances. Note the similarity to Program 1, where you statically assigned parts of the image to threads.
 
-However, rather than thinking about how to divide work among program instances
-(that is, how work is mapped to execution units), it is often more convenient,
-and more powerful, to instead focus only on the partitioning of a problem into
-independent parts. ISPCs `foreach` construct provides a mechanism to express
-problem decomposition. Below, the `foreach` loop in the ISPC function `sum2`
-defines an iteration space where all iterations are independent and therefore
-can be carried out in any order. ISPC handles the assignment of loop iterations
-to concurrent program instances. The difference between `sum` and `sum2` below
-is subtle, but very important. `sum` is imperative: it describes how to
-map work to concurrent instances. The example below is declarative: it
-specifies only the set of work to be performed.
+However, rather than thinking about how to divide work among program instances (that is, how work is mapped to execution units), it is often more convenient, and more powerful, to instead focus only on the partitioning of a problem into independent parts. ISPCs `foreach` construct provides a mechanism to express problem decomposition. Below, the `foreach` loop in the ISPC function `sum2` defines an iteration space where all iterations are independent and therefore can be carried out in any order. ISPC handles the assignment of loop iterations to concurrent program instances. The difference between `sum` and `sum2` below is subtle, but very important. `sum` is imperative: it describes how to map work to concurrent instances. The example below is declarative: it specifies only the set of work to be performed.
 
     -------------------------------------------------------------------------
     ISPC code:
@@ -251,22 +182,11 @@ specifies only the set of work to be performed.
       }
     }
 
-Before proceeding, you are encouraged to familiarize yourself with ISPC
-language constructs by reading through the ISPC walkthrough available at
-<http://ispc.github.io/example.html>. The example program in the walkthrough
-is almost exactly the same as Program 3's implementation of `mandelbrot_ispc()`
-in `mandelbrot.ispc`. In the assignment code, we have changed the bounds of
-the foreach loop to yield a more straightforward implementation.
+Before proceeding, you are encouraged to familiarize yourself with ISPC language constructs by reading through the ISPC walkthrough available at <http://ispc.github.io/example.html>. The example program in the walkthrough is almost exactly the same as Program 3's implementation of `mandelbrot_ispc()` in `mandelbrot.ispc`. In the assignment code, we have changed the bounds of the foreach loop to yield a more straightforward implementation.
 
 **What you need to do:**
 
-1.  Compile and run the program mandelbrot ispc. __The ISPC compiler is currently configured to emit 8-wide AVX2 vector instructions.__  What is the maximum
-  speedup you expect given what you know about these CPUs?
-  Why might the number you observe be less than this ideal? (Hint:
-  Consider the characteristics of the computation you are performing?
-  Describe the parts of the image that present challenges for SIMD
-  execution? Comparing the performance of rendering the different views
-  of the Mandelbrot set may help confirm your hypothesis.).  
+1.  Compile and run the program mandelbrot ispc. __The ISPC compiler is currently configured to emit 8-wide AVX2 vector instructions.__  What is the maximum speedup you expect given what you know about these CPUs? Why might the number you observe be less than this ideal? (Hint: Consider the characteristics of the computation you are performing? Describe the parts of the image that present challenges for SIMD execution? Comparing the performance of rendering the different views of the Mandelbrot set may help confirm your hypothesis.).  
 
   We remind you that for the code described in this subsection, the ISPC
   compiler maps gangs of program instances to SIMD instructions executed
@@ -295,22 +215,22 @@ different CPU cores).
 **What you need to do:**
 
 1.  Run `mandelbrot_ispc` with the parameter `--tasks`. What speedup do you
-  observe on view 1? What is the speedup over the version of `mandelbrot_ispc` that
-  does not partition that computation into tasks?
+    observe on view 1? What is the speedup over the version of `mandelbrot_ispc` that
+    does not partition that computation into tasks?
 2.  There is a simple way to improve the performance of
-  `mandelbrot_ispc --tasks` by changing the number of tasks the code
-  creates. By only changing code in the function
-  `mandelbrot_ispc_withtasks()`, you should be able to achieve
-  performance that exceeds the sequential version of the code by over 32 times!
-  How did you determine how many tasks to create? Why does the
-  number you chose work best?
+    `mandelbrot_ispc --tasks` by changing the number of tasks the code
+    creates. By only changing code in the function
+    `mandelbrot_ispc_withtasks()`, you should be able to achieve
+    performance that exceeds the sequential version of the code by over 32 times!
+    How did you determine how many tasks to create? Why does the
+    number you chose work best?
 3.  _Extra Credit: (2 points)_ What are differences between the thread
-  abstraction (used in Program 1) and the ISPC task abstraction? There
-  are some obvious differences in semantics between the (create/join
-  and (launch/sync) mechanisms, but the implications of these differences
-  are more subtle. Here's a thought experiment to guide your answer: what
-  happens when you launch 10,000 ISPC tasks? What happens when you launch
-  10,000 threads? (For this thought experiment, please discuss in the general case
+    abstraction (used in Program 1) and the ISPC task abstraction? There
+    are some obvious differences in semantics between the (create/join
+    and (launch/sync) mechanisms, but the implications of these differences
+    are more subtle. Here's a thought experiment to guide your answer: what
+    happens when you launch 10,000 ISPC tasks? What happens when you launch
+    10,000 threads? (For this thought experiment, please discuss in the general case
   - i.e. don't tie your discussion to this given mandelbrot program.)
 
 _The smart-thinking student's question_: Hey wait! Why are there two different
@@ -340,20 +260,20 @@ Note: This problem is a review to double-check your understanding, as it covers 
 **What you need to do:**
 
 1.  Build and run `sqrt`. Report the ISPC implementation speedup for 
-  single CPU core (no tasks) and when using all cores (with tasks). What 
-  is the speedup due to SIMD parallelization? What is the speedup due to 
-  multi-core parallelization?
+    single CPU core (no tasks) and when using all cores (with tasks). What 
+    is the speedup due to SIMD parallelization? What is the speedup due to 
+    multi-core parallelization?
 2.  Modify the contents of the array values to improve the relative speedup 
-  of the ISPC implementations. Construct a specifc input that __maximizes speedup over the sequential version of the code__ and report the resulting speedup achieved (for both the with- and without-tasks ISPC implementations). Does your modification improve SIMD speedup?
-  Does it improve multi-core speedup (i.e., the benefit of moving from ISPC without-tasks to ISPC with tasks)? Please explain why.
+    of the ISPC implementations. Construct a specifc input that __maximizes speedup over the sequential version of the code__ and report the resulting speedup achieved (for both the with- and without-tasks ISPC implementations). Does your modification improve SIMD speedup?
+    Does it improve multi-core speedup (i.e., the benefit of moving from ISPC without-tasks to ISPC with tasks)? Please explain why.
 3.  Construct a specific input for `sqrt` that __minimizes speedup for ISPC (without-tasks) over the sequential version of the code__. Describe this input, describe why you chose it, and report the resulting relative performance of the ISPC implementations. What is the reason for the loss in efficiency? 
     __(keep in mind we are using the `--target=avx2` option for ISPC, which generates 8-wide SIMD instructions)__. 
 4.  _Extra Credit: (up to 2 points)_ Write your own version of the `sqrt` 
- function manually using AVX2 intrinsics. To get credit your 
+     function manually using AVX2 intrinsics. To get credit your 
     implementation should be nearly as fast (or faster) than the binary 
     produced using ISPC. You may find the [Intel Intrinsics Guide](https://software.intel.com/sites/landingpage/IntrinsicsGuide/) 
     very helpful.
- 
+
 ## Program 5: BLAS `saxpy` (10 points) ##
 
 Program 5 is an implementation of the saxpy routine in the BLAS (Basic Linear
@@ -366,13 +286,13 @@ elements used. `saxpy` is a *trivially parallelizable computation* and features 
 **What you need to do:**
 
 1.  Compile and run `saxpy`. The program will report the performance of
-  ISPC (without tasks) and ISPC (with tasks) implementations of saxpy. What 
-  speedup from using ISPC with tasks do you observe? Explain the performance of this program.
-  Do you think it can be substantially improved? (For example, could you rewrite the code to achieve near linear speedup? Yes or No? Please justify your answer.)
+    ISPC (without tasks) and ISPC (with tasks) implementations of saxpy. What 
+    speedup from using ISPC with tasks do you observe? Explain the performance of this program.
+    Do you think it can be substantially improved? (For example, could you rewrite the code to achieve near linear speedup? Yes or No? Please justify your answer.)
 2. __Extra Credit:__ (1 point) Note that the total memory bandwidth consumed computation in `main.cpp` is `TOTAL_BYTES = 4 * N * sizeof(float);`.  Even though `saxpy` loads one element from X, one element from Y, and writes one element to `result` the multiplier by 4 is correct.  Why is this the case? (Hint, think about how CPU caches work.)
 3. __Extra Credit:__ (points handled on a case-by-case basis) Improve the performance of `saxpy`.
-  We're looking for a significant speedup here, not just a few percentage 
-  points. If successful, describe how you did it and what a best-possible implementation on these systems might achieve. Also, if successful, come tell the staff, we'll be interested. ;-)
+    We're looking for a significant speedup here, not just a few percentage 
+    points. If successful, describe how you did it and what a best-possible implementation on these systems might achieve. Also, if successful, come tell the staff, we'll be interested. ;-)
 
 Notes: Some students have gotten hung up on this question (thinking too hard) in the past. We expect a simple answer, but the results from running this problem might trigger more questions in your head.  Feel encouraged to come talk to the staff.
 
@@ -390,12 +310,13 @@ In the starter code you have been given a correct implementation of the K-means 
 2.  Run `pip install -r requirements.txt` to download the necessary plotting packages. Next, try running `python3 plot.py` which will generate the files "start.png" and "end.png" from the logs ("start.log" and "end.log") generated from running `kmeans`. These files will be in the current directory and should look similar to the above images. __Warning: You might notice that not all points are assigned to the "closest" centroid. This is okay.__ (For those that want to understand why: We project 100-dimensional datapoints down to 2-D using [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis) to produce these visualizations. Therefore, while the 100-D datapoint is near the appropriate centroid in high dimensional space, the projects of the datapoint and the centroid may not be close to each other in 2-D.). As long as the clustering looks "reasonable" (use the images produced by the starter code in step 2 as a reference) and most points appear to be assigned to the clostest centroid, the code remains correct.
 3.  Utilize the timing function in `common/CycleTimer.h` to determine where in the code there are performance bottlenecks. You will need to call `CycleTimer::currentSeconds()`, which returns the current time (in seconds) as a floating point number. Where is most of the time being spent in the code?
 4.  Based on your findings from the previous step, improve the implementation. We are looking for a speedup of about 2.1x or more (i.e $\frac{oldRuntime}{newRuntime} >= 2.1$). Please explain how you arrived at your solution, as well as what your final solution is and the associated speedup. The writeup of this process should describe a sequence of steps. We expect something of the form "I measured ... which let me to believe X. So to improve things I tried ... resulting in a speedup/slowdown of ...".
-  
+
 Constraints:
 - You may only modify code in `kmeansThread.cpp`. You are not allowed to modify the `stoppingConditionMet` function and you cannot change the interface to `kMeansThread`, but anything is fair game (e.g. you can add new members to the `WorkerArgs` struct, rewrite functions, allocate new arrays, etc.). However...
 - **Make sure you do not change the functionality of the implementation! If the algorithm doesn't converge or the result from running `python3 plot.py` does not look like what's produced by the starter code, something is wrong!** For example, you cannot simply remove the main "while" loop or change the semantics of the `dist` function, since this would yield incorrect results.
 - __Important:__ you may only parallelize __one__ of the following functions: `dist`, `computeAssignments`, `computeCentroids`, `computeCost`. For an example of how to write parallel code using `std::thread`, see `prog1_mandelbrot_threads/mandelbrotThread.cpp`.
   
+
 Tips / Notes: 
 - This problem should not require a significant amount of coding. Our solution modified/added around 20-25 lines of code.
 - Once you've used timers to isolate hotspots, to improve the code make sure you understand the relative sizes of K, M, and N.
@@ -426,10 +347,7 @@ Please tell the CAs to look for your extra credit in your write-up. When handed 
 
 ## Resources and Notes ##
 
--  Extensive ISPC documentation and examples can be found at
-  <http://ispc.github.io/>
--  Zooming into different locations of the mandelbrot image can be quite
-  fascinating
--  Intel provides a lot of supporting material about AVX2 vector instructions at
-  <http://software.intel.com/en-us/avx/>.  
+-  Extensive ISPC documentation and examples can be found at <http://ispc.github.io/>
+-  Zooming into different locations of the mandelbrot image can be quite fascinating
+-  Intel provides a lot of supporting material about AVX2 vector instructions at <http://software.intel.com/en-us/avx/>.  
 -  The [Intel Intrinsics Guide](https://software.intel.com/sites/landingpage/IntrinsicsGuide/) is very useful.

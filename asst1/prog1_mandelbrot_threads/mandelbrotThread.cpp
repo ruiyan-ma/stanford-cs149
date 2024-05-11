@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <thread>
+#include <iostream>
+#include <chrono>
 
 #include "CycleTimer.h"
 
@@ -22,6 +24,13 @@ extern void mandelbrotSerial(
     int maxIterations,
     int output[]);
 
+extern void mandelbrotSerialStep(
+    float x0, float y0, float x1, float y1,
+    int width, int height,
+    int startRow, int step,
+    int maxIterations,
+    int output[]);
+
 
 //
 // workerThreadStart --
@@ -36,6 +45,23 @@ void workerThreadStart(WorkerArgs * const args) {
     // half of the image and thread 1 could compute the bottom half.
 
     printf("Hello world from thread %d\n", args->threadId);
+    double startTime = CycleTimer::currentSeconds();
+
+    // blocked assignment: each thread computes a block of output
+    /* int numRows = args->height / args->numThreads; */
+    /* int startRow = args->threadId * numRows; */
+    /* if (args->threadId + 1 == args->numThreads) numRows = args->height - startRow; */
+    /* mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, */ 
+    /*         args->width, args->height, startRow, numRows, */ 
+    /*         args->maxIterations, args->output); */
+
+    // interleaved assignment: thread i computes rows of k * numThread + i
+    mandelbrotSerialStep(args->x0, args->y0, args->x1, args->y1, 
+            args->width, args->height, args->threadId, args->numThreads, 
+            args->maxIterations, args->output);
+
+    double endTime = CycleTimer::currentSeconds();
+    printf("[mandelbrot thread %d]:\t\t[%.3f] ms\n", args->threadId, (endTime - startTime) * 1000);
 }
 
 //
