@@ -68,29 +68,29 @@ Your job is to parallelize the computation of the images using [std::thread](htt
 
    Answer: speedup graph as follows. 
 
-   ![speedup](/Users/ruiyan/edu/arch/149/repo/asst1/images/speedup.png)
+   ![speedup](handout-images/speedup.png)
 
    In general, the speedup is linear in the number of threads. However, we can find that when the number of threads goes from 2 to 3, the speedup actually goes down. This is because the workload distribution between different threads is imbalanced. Since we use blocked assignment, with k threads, the image is partitioned into k blocks horizontally. For view 1 situation, when we have 3 threads, one of them must take the middle block which obviously needs more computation (since it has more while points). This thread will be slower than the other two threads, even slower than when running with only 2 threads. This explains why the speedup goes down when we goes from 2 threads to 3 threads. 
 
    Because of the same reason, for the view 2 situation, the thread which takes the top block of the image (with more white points) will run slower than others. 
 
-   ![views](/Users/ruiyan/edu/arch/149/repo/asst1/images/views.png)
+   ![Mandelbrot Set](handout-images/mandelbrot_viz.jpg)
 
 3. To confirm (or disprove) your hypothesis, measure the amount of time each thread requires to complete its work by inserting timing code at the beginning and end of `workerThreadStart()`. How do your measurements explain the speedup graph you previously created? 
 
    Answer: runtime of each thread in view 1, with 3 threads. We can see thread 1 runs slower because it takes the middle block of the image. 
 
-   ![view 1 time](/Users/ruiyan/edu/arch/149/repo/asst1/images/view 1 time.png)
+   ![view 1 time](handout-images/view 1 time.png)
 
    Runtime of each thread in view 2, with 3 threads. We can see thread 0 runs slower because it takes the top block of the image. 
 
-   ![view 2 time](/Users/ruiyan/edu/arch/149/repo/asst1/images/view 2 time.png)
+   ![view 2 time](handout-images/view 2 time.png)
 
 4. Modify the mapping of work to threads to achieve to improve speedup to at __about 7-8x on both views__ of the Mandelbrot set (if you're above 7x that's fine, don't sweat it). You may not use any synchronization between threads in your solution. We are expecting you to come up with a single work decomposition policy that will work well for all thread counts---hard coding a solution specific to each configuration is not allowed! (Hint: There is a very simple static assignment that will achieve this goal, and no communication/synchronization among threads is necessary.). In your writeup, describe your approach to parallelization and report the final 8-thread speedup obtained. 
 
    Answer: use interleaved assignment instead of blocked assignment. 
 
-   ![speedup_int](/Users/ruiyan/edu/arch/149/repo/asst1/images/speedup_int.png)
+   ![speedup_int](handout-images/speedup_int.png)
 
 5. Now run your improved code with 16 threads. Is performance noticably greater than when running with eight threads? Why or why not? 
 
