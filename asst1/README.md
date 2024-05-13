@@ -68,7 +68,7 @@ Your job is to parallelize the computation of the images using [std::thread](htt
 
    Answer: speedup graph as follows. 
 
-   ![speedup](handout-images/speedup.png)
+   ![speedup](handout-images/prog1_speedup.png)
 
    In general, the speedup is linear in the number of threads. However, we can find that when the number of threads goes from 2 to 3, the speedup actually goes down. This is because the workload distribution between different threads is imbalanced. Since we use blocked assignment, with k threads, the image is partitioned into k blocks horizontally. For view 1 situation, when we have 3 threads, one of them must take the middle block which obviously needs more computation (since it has more while points). This thread will be slower than the other two threads, even slower than when running with only 2 threads. This explains why the speedup goes down when we goes from 2 threads to 3 threads. 
 
@@ -80,17 +80,17 @@ Your job is to parallelize the computation of the images using [std::thread](htt
 
    Answer: runtime of each thread in view 1, with 3 threads. We can see thread 1 runs slower because it takes the middle block of the image. 
 
-   ![view1time](handout-images/view1_time.png)
+   ![view1time](handout-images/prog1_view1_time.png)
 
    Runtime of each thread in view 2, with 3 threads. We can see thread 0 runs slower because it takes the top block of the image. 
 
-   ![view2time](handout-images/view2_time.png)
+   ![view2time](handout-images/prog1_view2_time.png)
 
 4. Modify the mapping of work to threads to achieve to improve speedup to at __about 7-8x on both views__ of the Mandelbrot set (if you're above 7x that's fine, don't sweat it). You may not use any synchronization between threads in your solution. We are expecting you to come up with a single work decomposition policy that will work well for all thread counts---hard coding a solution specific to each configuration is not allowed! (Hint: There is a very simple static assignment that will achieve this goal, and no communication/synchronization among threads is necessary.). In your writeup, describe your approach to parallelization and report the final 8-thread speedup obtained. 
 
    Answer: use interleaved assignment instead of blocked assignment. 
 
-   ![speedup_int](handout-images/speedup_int.png)
+   ![speedup_int](handout-images/prog1_speedup_int.png)
 
 5. Now run your improved code with 16 threads. Is performance noticably greater than when running with eight threads? Why or why not? 
 
@@ -201,24 +201,35 @@ Before proceeding, you are encouraged to familiarize yourself with ISPC language
 
 **What you need to do:**
 
-1.  Compile and run the program mandelbrot ispc. __The ISPC compiler is currently configured to emit 8-wide AVX2 vector instructions.__  What is the maximum speedup you expect given what you know about these CPUs? Why might the number you observe be less than this ideal? (Hint: Consider the characteristics of the computation you are performing? Describe the parts of the image that present challenges for SIMD execution? Comparing the performance of rendering the different views of the Mandelbrot set may help confirm your hypothesis.).  
+1. Compile and run the program mandelbrot ispc. __The ISPC compiler is currently configured to emit 8-wide AVX2 vector instructions.__  What is the maximum speedup you expect given what you know about these CPUs? Why might the number you observe be less than this ideal? (Hint: Consider the characteristics of the computation you are performing? Describe the parts of the image that present challenges for SIMD execution? Comparing the performance of rendering the different views of the Mandelbrot set may help confirm your hypothesis.).  
 
-  We remind you that for the code described in this subsection, the ISPC compiler maps gangs of program instances to SIMD instructions executed on a single core. This parallelization scheme differs from that of Program 1, where speedup was achieved by running threads on multiple cores.
+   Answer: I'm using ispc-v1.23.0-macOS.arm64 compiler running on an ARM-Based Mac. The maximum speedup I expect is 8 times while the actual speedup is 3.6 times for view 1 and 2.81 times for view 2. I think this is because the imbalanced computation workload between different lanes of the SIMD instruction. A SIMD instruction running on both black and white points will run as slow as those instruction running on all white points. The more "black-white mixture" part the image has, the less speedup it will get. Thus we can see the speedup of view 2 is less than view 1. 
 
-If you look into detailed technical material about the CPUs in the myth machines, you will find there are a complicated set of rules about how many scalar and vector instructions can be run per clock.  For the purposes of this assignment, you can assume that there are about as many 8-wide vector execution units as there are scalar execution units for floating point math.   
+We remind you that for the code described in this subsection, the ISPC compiler maps gangs of program instances to SIMD instructions executed on a single core. This parallelization scheme differs from that of Program 1, where speedup was achieved by running threads on multiple cores. 
+
+If you look into detailed technical material about the CPUs in the myth machines, you will find there are a complicated set of rules about how many scalar and vector instructions can be run per clock.  For the purposes of this assignment, you can assume that there are about as many 8-wide vector execution units as there are scalar execution units for floating point math. 
 
 ### Program 3, Part 2: ISPC Tasks (10 of 20 points) ###
 
 ISPCs SPMD execution model and mechanisms like `foreach` facilitate the creation of programs that utilize SIMD processing. The language also provides an additional mechanism utilizing multiple cores in an ISPC computation. This mechanism is launching _ISPC tasks_.
 
-See the `launch[2]` command in the function `mandelbrot_ispc_withtasks`. This command launches two tasks. Each task defines a computation that will be executed by a gang of ISPC program instances. As given by the function `mandelbrot_ispc_task`, each task computes a region of the final image. Similar to how the `foreach` construct defines loop iterations that can be carried out in any order (and in parallel by ISPC program instances, the tasks created by this launch operation can be processed in any order (and in parallel on different CPU cores).
+See the `launch[2]` command in the function `mandelbrot_ispc_withtasks`. This command launches two tasks. Each task defines a computation that will be executed by a gang of ISPC program instances. As given by the function `mandelbrot_ispc_task`, each task computes a region of the final image. Similar to how the `foreach` construct defines loop iterations that can be carried out in any order (and in parallel by ISPC program instances), the tasks created by this launch operation can be processed in any order (and in parallel on different CPU cores).
 
 **What you need to do:**
 
-1.  Run `mandelbrot_ispc` with the parameter `--tasks`. What speedup do you observe on view 1? What is the speedup over the version of `mandelbrot_ispc` that does not partition that computation into tasks?
-2.  There is a simple way to improve the performance of `mandelbrot_ispc --tasks` by changing the number of tasks the code creates. By only changing code in the function `mandelbrot_ispc_withtasks()`, you should be able to achieve performance that exceeds the sequential version of the code by over 32 times! How did you determine how many tasks to create? Why does the number you chose work best?
-3.  _Extra Credit: (2 points)_ What are differences between the thread abstraction (used in Program 1) and the ISPC task abstraction? There are some obvious differences in semantics between the (create/join and (launch/sync) mechanisms, but the implications of these differences are more subtle. Here's a thought experiment to guide your answer: what happens when you launch 10,000 ISPC tasks? What happens when you launch 10,000 threads? (For this thought experiment, please discuss in the general case
-  - i.e. don't tie your discussion to this given mandelbrot program.)
+1. Run `mandelbrot_ispc` with the parameter `--tasks`. What speedup do you observe on view 1? What is the speedup over the version of `mandelbrot_ispc` that does not partition that computation into tasks? 
+
+   Answer: I get 3.6x speedup from ISPC, and 6.97x speedup from task ISPC. 
+
+2. There is a simple way to improve the performance of `mandelbrot_ispc --tasks` by changing the number of tasks the code creates. By only changing code in the function `mandelbrot_ispc_withtasks()`, you should be able to achieve performance that exceeds the sequential version of the code by over 32 times! How did you determine how many tasks to create? Why does the number you chose work best? 
+
+   Answer: I create 32 tasks and get 3.6x speedup from ISPC and 27x speedup from task ISPC. 
+
+3. _Extra Credit: (2 points)_ What are differences between the thread abstraction (used in Program 1) and the ISPC task abstraction? There are some obvious differences in semantics between the (create/join) and (launch/sync) mechanisms, but the implications of these differences are more subtle. Here's a thought experiment to guide your answer: what happens when you launch 10,000 ISPC tasks? What happens when you launch 10,000 threads? (For this thought experiment, please discuss in the general case, i.e. don't tie your discussion to this given mandelbrot program.)
+
+   Answer: ISPC tasks are independent work that can be executed concurrently. They are pieces of work sitting in the pool, waiting for threads to finish them. While threads are workers that pick up tasks and "do the thing". 
+
+   In general, one should launch many more tasks than # of hardware cores in the system to ensure good load-balancing, but not so many that the overhead of scheduling and running tasks dominates the computation. 
 
 _The smart-thinking student's question_: Hey wait! Why are there two different mechanisms (`foreach` and `launch`) for expressing independent, parallelizable work to the ISPC system? Couldn't the system just partition the many iterations of `foreach` across all cores and also emit the appropriate SIMD code for the cores?
 
