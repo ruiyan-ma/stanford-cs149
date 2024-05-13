@@ -245,12 +245,19 @@ Note: This problem is a review to double-check your understanding, as it covers 
 
 **What you need to do:**
 
-1.  Build and run `sqrt`. Report the ISPC implementation speedup for single CPU core (no tasks) and when using all cores (with tasks). What is the speedup due to SIMD parallelization? What is the speedup due to multi-core parallelization?
-2.  Modify the contents of the array values to improve the relative speedup of the ISPC implementations. Construct a specifc input that __maximizes speedup over the sequential version of the code__ and report the resulting speedup achieved (for both the with- and without-tasks ISPC implementations). Does your modification improve SIMD speedup?
-    Does it improve multi-core speedup (i.e., the benefit of moving from ISPC without-tasks to ISPC with tasks)? Please explain why.
-3.  Construct a specific input for `sqrt` that __minimizes speedup for ISPC (without-tasks) over the sequential version of the code__. Describe this input, describe why you chose it, and report the resulting relative performance of the ISPC implementations. What is the reason for the loss in efficiency? 
-    __(keep in mind we are using the `--target=avx2` option for ISPC, which generates 8-wide SIMD instructions)__. 
-4.  _Extra Credit: (up to 2 points)_ Write your own version of the `sqrt` function manually using AVX2 intrinsics. To get credit your implementation should be nearly as fast (or faster) than the binary produced using ISPC. You may find the [Intel Intrinsics Guide](https://software.intel.com/sites/landingpage/IntrinsicsGuide/) very helpful.
+1. Build and run `sqrt`. Report the ISPC implementation speedup for single CPU core (no tasks) and when using all cores (with tasks). What is the speedup due to SIMD parallelization? What is the speedup due to multi-core parallelization? 
+
+   Answer: 4.66x speedup for single CPU core (no task), and 38.89x speedup for all cores (with tasks). That is to say, 4.66x speedup due to SIMD parallelization, 8.34x speedup due to multi-core parallelization. 
+
+2. Modify the contents of the array values to improve the relative speedup of the ISPC implementations. Construct a specifc input that __maximizes speedup over the sequential version of the code__ and report the resulting speedup achieved (for both the with- and without-tasks ISPC implementations). Does your modification improve SIMD speedup? Does it improve multi-core speedup (i.e., the benefit of moving from ISPC without-tasks to ISPC with tasks)? Please explain why. 
+
+   Answer: I set all elements to 2.999 in the input array. This gives me 5.01x speedup for ISPC without tasks and 39.65x speedup for ISPC with tasks. Since all elements are the same, each lane requires the same amount of iteration, to improve the efficiency of vector computation. 
+
+3. Construct a specific input for `sqrt` that __minimizes speedup for ISPC (without-tasks) over the sequential version of the code__. Describe this input, describe why you chose it, and report the resulting relative performance of the ISPC implementations. What is the reason for the loss in efficiency? __(keep in mind we are using the `--target=avx2` option for ISPC, which generates 8-wide SIMD instructions)__. 
+
+   Answer: I set `values[i]` to 2.999 when `i % 8 == 0` and to 1 otherwise. That gives me 0.53x speedup for ISPC without tasks and 4.38x speedup for ISPC with tasks. From the graph above, we know that the program converge very quickly when input is 1, while it converge very slowly when input is near 3. Since we are using 8-wide SIMD instructions, the lane with value 2.999 will make the entire vector computation very slow, while the sequential version can easily converge on the those seven 1 inputs. 
+
+4. _Extra Credit: (up to 2 points)_ Write your own version of the `sqrt` function manually using AVX2 intrinsics. To get credit your implementation should be nearly as fast (or faster) than the binary produced using ISPC. You may find the [Intel Intrinsics Guide](https://software.intel.com/sites/landingpage/IntrinsicsGuide/) very helpful.
 
 ## Program 5: BLAS `saxpy` (10 points) ##
 
