@@ -94,7 +94,7 @@ Your job is to parallelize the computation of the images using [std::thread](htt
 
 5. Now run your improved code with 16 threads. Is performance noticably greater than when running with eight threads? Why or why not? 
 
-   Answer: the performance is not noticably greater than when running with 8 threads. This is because the CPU only has 8 execution contexts in total, limiting the speedup to 8 times. 
+   Answer: the performance is not noticably greater than when running with 8 threads. This is because the CPU only has 8 execution contexts in total, limiting the speedup to 8x. 
 
 ## Program 2: Vectorizing Code Using SIMD Intrinsics (20 points) ##
 
@@ -203,7 +203,7 @@ Before proceeding, you are encouraged to familiarize yourself with ISPC language
 
 1. Compile and run the program mandelbrot ispc. __The ISPC compiler is currently configured to emit 8-wide AVX2 vector instructions.__  What is the maximum speedup you expect given what you know about these CPUs? Why might the number you observe be less than this ideal? (Hint: Consider the characteristics of the computation you are performing? Describe the parts of the image that present challenges for SIMD execution? Comparing the performance of rendering the different views of the Mandelbrot set may help confirm your hypothesis.).  
 
-   Answer: I'm using ispc-v1.23.0-macOS.arm64 compiler running on an ARM-Based Mac. The maximum speedup I expect is 8 times while the actual speedup is 3.6 times for view 1 and 2.81 times for view 2. I think this is because the imbalanced computation workload between different lanes of the SIMD instruction. A SIMD instruction running on both black and white points will run as slow as those instruction running on all white points. The more "black-white mixture" part the image has, the less speedup it will get. Thus we can see the speedup of view 2 is less than view 1. 
+   Answer: I'm using ispc-v1.23.0-macOS.arm64 compiler running on an ARM-Based Mac. The maximum speedup I expect is 8x while the actual speedup is 3.6x for view 1 and 2.81x for view 2. I think this is because the imbalanced computation workload between different lanes of the SIMD instruction. A SIMD instruction running on both black and white points will run as slow as those instruction running on all white points. The more "black-white mixture" part the image has, the less speedup it will get. Thus we can see the speedup of view 2 is less than view 1. 
 
 We remind you that for the code described in this subsection, the ISPC compiler maps gangs of program instances to SIMD instructions executed on a single core. This parallelization scheme differs from that of Program 1, where speedup was achieved by running threads on multiple cores. 
 
@@ -261,15 +261,19 @@ Note: This problem is a review to double-check your understanding, as it covers 
 
 ## Program 5: BLAS `saxpy` (10 points) ##
 
-Program 5 is an implementation of the saxpy routine in the BLAS (Basic Linear Algebra Subproblems) library that is widely used (and heavily optimized) on many systems. `saxpy` computes the simple operation `result = scale*X+Y`, where `X`, `Y`, 
-and `result` are vectors of `N` elements (in Program 5, `N` = 20 million) and `scale` is a scalar. Note that `saxpy` performs two math operations (one multiply, one add) for every three elements used. `saxpy` is a *trivially parallelizable computation* and features predictable, regular data access and predictable execution cost.
+Program 5 is an implementation of the saxpy routine in the BLAS (Basic Linear Algebra Subproblems) library that is widely used (and heavily optimized) on many systems. `saxpy` computes the simple operation `result = scale*X+Y`, where `X`, `Y`, and `result` are vectors of `N` elements (in Program 5, `N` = 20 million) and `scale` is a scalar. Note that `saxpy` performs two math operations (one multiply, one add) for every three elements used. `saxpy` is a *trivially parallelizable computation* and features predictable, regular data access and predictable execution cost.
 
 **What you need to do:**
 
-1.  Compile and run `saxpy`. The program will report the performance of ISPC (without tasks) and ISPC (with tasks) implementations of saxpy. What speedup from using ISPC with tasks do you observe? Explain the performance of this program.
-    Do you think it can be substantially improved? (For example, could you rewrite the code to achieve near linear speedup? Yes or No? Please justify your answer.)
-2. __Extra Credit:__ (1 point) Note that the total memory bandwidth consumed computation in `main.cpp` is `TOTAL_BYTES = 4 * N * sizeof(float);`.  Even though `saxpy` loads one element from X, one element from Y, and writes one element to `result` the multiplier by 4 is correct.  Why is this the case? (Hint, think about how CPU caches work.)
-3.  __Extra Credit:__ (points handled on a case-by-case basis) Improve the performance of `saxpy`. We're looking for a significant speedup here, not just a few percentage points. If successful, describe how you did it and what a best-possible implementation on these systems might achieve. Also, if successful, come tell the staff, we'll be interested. ;-)
+1. Compile and run `saxpy`. The program will report the performance of ISPC (without tasks) and ISPC (with tasks) implementations of saxpy. What speedup from using ISPC with tasks do you observe? Explain the performance of this program. Do you think it can be substantially improved? (For example, could you rewrite the code to achieve near linear speedup? Yes or No? Please justify your answer.) 
+
+   Answer: I get 1.87x speedup from using ISPC tasks. Because this program needs lots of memory accesses, it's basically bound by I/O. I don't think it can be substantially improved unless we improve the memory bandwidth or we change the data access pattern of this program.  
+
+2. __Extra Credit:__ (1 point) Note that the total memory bandwidth consumed computation in `main.cpp` is `TOTAL_BYTES = 4 * N * sizeof(float);`.  Even though `saxpy` loads one element from X, one element from Y, and writes one element to `result`, the multiplier by 4 is correct.  Why is this the case? (Hint, think about how CPU caches work.)
+
+   Answer: because when CPU needs to write something, it first loads that thing into the cache, then it writes new value to the cache line. Later on when this cache line is evicted, the data get flushed to the memory. That is 1 read and 1write in total. 
+
+3. __Extra Credit:__ (points handled on a case-by-case basis) Improve the performance of `saxpy`. We're looking for a significant speedup here, not just a few percentage points. If successful, describe how you did it and what a best-possible implementation on these systems might achieve. Also, if successful, come tell the staff, we'll be interested. ;-)
 
 Notes: Some students have gotten hung up on this question (thinking too hard) in the past. We expect a simple answer, but the results from running this problem might trigger more questions in your head.  Feel encouraged to come talk to the staff.
 
