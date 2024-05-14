@@ -268,7 +268,7 @@ Program 5 is an implementation of the saxpy routine in the BLAS (Basic Linear Al
 
 2. __Extra Credit:__ (1 point) Note that the total memory bandwidth consumed computation in `main.cpp` is `TOTAL_BYTES = 4 * N * sizeof(float);`.  Even though `saxpy` loads one element from X, one element from Y, and writes one element to `result`, the multiplier by 4 is correct.  Why is this the case? (Hint, think about how CPU caches work.)
 
-   Answer: because when CPU needs to write something, it first loads that thing into the cache, then it writes new value to the cache line. Later on when this cache line is evicted, the data get flushed to the memory. That is 1 read and 1write in total. 
+   Answer: because when CPU needs to write something, it first loads that thing into the cache, then it writes new value to the cache line. Later on when this cache line is evicted, the data get flushed to the memory. That is 1 read and 1 write in total. 
 
 3. __Extra Credit:__ (points handled on a case-by-case basis) Improve the performance of `saxpy`. We're looking for a significant speedup here, not just a few percentage points. If successful, describe how you did it and what a best-possible implementation on these systems might achieve. Also, if successful, come tell the staff, we'll be interested. ;-)
 
