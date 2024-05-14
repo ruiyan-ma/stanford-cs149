@@ -41,9 +41,8 @@ The above line can be added to your `.bashrc` file for permanence.
 
 If you are using csh, you'll update your `PATH` using `setenv`.  A quick Google search will teach you how. 
 
-2. The assignment starter code is available on <https://github.com/stanford-cs149/asst1>. Please clone the Assignment 1 starter code using:
+2. The assignment starter code is available on <https://github.com/stanford-cs149/asst1>. Please clone the Assignment 1 starter code using: `git clone https://github.com/stanford-cs149/asst1.git`
 
-    `git clone https://github.com/stanford-cs149/asst1.git`
 
 ## Program 1: Parallel Fractal Generation Using Threads (20 points) ##
 
