@@ -122,7 +122,7 @@ The output of the program will tell you if your implementation generates correct
    utilization. You can do this by changing the `#define VECTOR_WIDTH` value in `CS149intrin.h`. 
    Does the vector utilization increase, decrease or stay the same as `VECTOR_WIDTH` changes? Why?
 
-   Answer: the vector utilization decrease as vector width increases. This is because the computation of a vector is done only when all elements are done. With a wider vector, there is more chance to have an element whose `exponents[i]` is much larger than other elements, which lets other elements to "wait" for it. 
+   Answer: the vector utilization decrease as vector width increases. This is because with a wider vector, there is more chance to have an element whose `exponents[i]` is much larger than other elements, which lets other elements to "wait" for it. 
 
    | Vector Width | Vector Utilization |
    | ------------ | ------------------ |
@@ -227,9 +227,7 @@ See the `launch[2]` command in the function `mandelbrot_ispc_withtasks`. This co
 
 3. _Extra Credit: (2 points)_ What are differences between the thread abstraction (used in Program 1) and the ISPC task abstraction? There are some obvious differences in semantics between the (create/join) and (launch/sync) mechanisms, but the implications of these differences are more subtle. Here's a thought experiment to guide your answer: what happens when you launch 10,000 ISPC tasks? What happens when you launch 10,000 threads? (For this thought experiment, please discuss in the general case, i.e. don't tie your discussion to this given mandelbrot program.)
 
-   Answer: ISPC tasks are independent work that can be executed concurrently. They are pieces of work sitting in the pool, waiting for threads to finish them. While threads are workers that pick up tasks and "do the thing". 
-
-   In general, one should launch many more tasks than # of hardware cores in the system to ensure good load-balancing, but not so many that the overhead of scheduling and running tasks dominates the computation. 
+   Answer: ISPC tasks are independent work that can be executed concurrently. They are pieces of work sitting in the pool, waiting for threads to finish them. While threads are workers that pick up tasks and "do the thing". In general, one should launch many more tasks than # of hardware cores in the system to ensure good load-balancing, but not so many that the overhead of scheduling and running tasks dominates the computation. 
 
 _The smart-thinking student's question_: Hey wait! Why are there two different mechanisms (`foreach` and `launch`) for expressing independent, parallelizable work to the ISPC system? Couldn't the system just partition the many iterations of `foreach` across all cores and also emit the appropriate SIMD code for the cores?
 
