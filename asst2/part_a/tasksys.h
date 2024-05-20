@@ -1,6 +1,9 @@
 #ifndef _TASKSYS_H
 #define _TASKSYS_H
 
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include "itasksys.h"
 
 /*
@@ -34,6 +37,11 @@ class TaskSystemParallelSpawn: public ITaskSystem {
         TaskID runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
                                 const std::vector<TaskID>& deps);
         void sync();
+
+    private:
+        int _num_threads;
+        std::thread* _workers;
+        void runTask(IRunnable* runnable, int thread_id, int num_total_tasks);
 };
 
 /*
@@ -51,6 +59,17 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
         TaskID runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
                                 const std::vector<TaskID>& deps);
         void sync();
+        
+    private:
+        int _num_threads;
+        std::thread* _workers;
+        std::mutex* _mutex;
+        IRunnable* _runnable;
+        int _num_total_tasks;
+        int _next_task;
+        int _finished_task;
+        bool _stop_running;
+        void runTask();
 };
 
 /*
@@ -68,6 +87,19 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
         TaskID runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
                                 const std::vector<TaskID>& deps);
         void sync();
+
+    private:
+        int _num_threads;
+        std::thread* _workers;
+        std::condition_variable* _launch_or_stop;
+        std::condition_variable* _task_done;
+        std::mutex* _mutex;
+        IRunnable* _runnable;
+        int _num_total_tasks;
+        int _next_task;
+        int _finished_task;
+        bool _stop_running;
+        void runTask();
 };
 
 #endif
