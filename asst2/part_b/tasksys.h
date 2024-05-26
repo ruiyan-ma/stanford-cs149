@@ -1,6 +1,13 @@
 #ifndef _TASKSYS_H
 #define _TASKSYS_H
 
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <deque>
+#include <unordered_set>
+#include <unordered_map>
+
 #include "itasksys.h"
 
 /*
@@ -53,6 +60,19 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
         void sync();
 };
 
+/* Record every bulk task launch. */
+struct TaskLaunch {
+    IRunnable* runnable;
+    int num_total_tasks;
+    int num_deps;
+    int next_task;
+    int num_done_tasks;
+    std::mutex *mutex;
+
+    TaskLaunch(IRunnable* runnable, int num_total_tasks, int num_deps);
+    void print();
+};
+
 /*
  * TaskSystemParallelThreadPoolSleeping: This class is the student's
  * optimized implementation of a parallel task execution engine that uses
@@ -68,6 +88,24 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
         TaskID runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
                                 const std::vector<TaskID>& deps);
         void sync();
+
+    private:
+        int _num_threads;
+        std::thread* _workers;
+        std::condition_variable* _ready_or_stop;
+        std::condition_variable* _all_done;
+        std::mutex* _mutex;
+        TaskID _next_task_id;
+        bool _stop_running;
+
+        std::deque<TaskID> _ready_tasks;
+        std::unordered_set<TaskID> _waiting_tasks;
+        std::unordered_set<TaskID> _finished_tasks;
+        std::unordered_map<TaskID, TaskLaunch*> _task_launches;
+        std::unordered_map<TaskID, std::vector<TaskID>> _subsequent_tasks;
+
+        void runTask();
+        void print();
 };
 
 #endif
