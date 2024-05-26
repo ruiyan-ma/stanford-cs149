@@ -124,7 +124,7 @@ TaskSystemParallelThreadPoolSpinning::TaskSystemParallelThreadPoolSpinning(int n
     _runnable = nullptr;
     _num_total_tasks = 0;
     _next_task = 0;
-    _finished_task = 0;
+    _num_done_tasks = 0;
     _stop_running = false;
 
     for (int i = 0; i < _num_threads; ++i) {
@@ -159,12 +159,12 @@ void TaskSystemParallelThreadPoolSpinning::run(IRunnable* runnable, int num_tota
     _runnable = runnable;
     _num_total_tasks = num_total_tasks;
     _next_task = 0;
-    _finished_task = 0;
+    _num_done_tasks = 0;
     lock.unlock();
 
     while (true) {
         lock.lock();
-        if (_finished_task == _num_total_tasks) {
+        if (_num_done_tasks == _num_total_tasks) {
             _runnable = nullptr;
             _num_total_tasks = 0;
             return;
@@ -189,9 +189,9 @@ void TaskSystemParallelThreadPoolSpinning::runTask() {
         // run task without the lock (allowing other threads to run tasks)
         _runnable->runTask(next_task_copy, _num_total_tasks);
 
-        // update _finished_task with the lock
+        // update _num_done_tasks with the lock
         lock.lock();
-        _finished_task += 1;
+        _num_done_tasks += 1;
         lock.unlock();
     }
 }
@@ -233,7 +233,7 @@ TaskSystemParallelThreadPoolSleeping::TaskSystemParallelThreadPoolSleeping(int n
     _runnable = nullptr;
     _num_total_tasks = 0;
     _next_task = 0;
-    _finished_task = 0;
+    _num_done_tasks = 0;
     _stop_running = false;
 
     for (int i = 0; i < _num_threads; ++i) {
@@ -279,7 +279,7 @@ void TaskSystemParallelThreadPoolSleeping::run(IRunnable* runnable, int num_tota
     _runnable = runnable;
     _num_total_tasks = num_total_tasks;
     _next_task = 0;
-    _finished_task = 0;
+    _num_done_tasks = 0;
 
     // notify all workers to start working
     lock.unlock();
@@ -287,7 +287,7 @@ void TaskSystemParallelThreadPoolSleeping::run(IRunnable* runnable, int num_tota
 
     // wake up condition: all tasks are finished
     lock.lock();
-    _task_done->wait(lock, [this]{return _finished_task == _num_total_tasks;});
+    _task_done->wait(lock, [this]{return _num_done_tasks == _num_total_tasks;});
     _runnable = nullptr;
     _num_total_tasks = 0;
     lock.unlock();
@@ -310,10 +310,10 @@ void TaskSystemParallelThreadPoolSleeping::runTask() {
         // run task without the lock (allowing other threads to run tasks)
         _runnable->runTask(next_task_copy, _num_total_tasks);
 
-        // update _finished_task with the lock, notify main thread if all tasks are done
+        // update _num_done_tasks with the lock, notify main thread if all tasks are done
         lock.lock();
-        _finished_task += 1;
-        if (_finished_task == _num_total_tasks) {
+        _num_done_tasks += 1;
+        if (_num_done_tasks == _num_total_tasks) {
             lock.unlock();
             _task_done->notify_one();
             continue;

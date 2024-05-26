@@ -67,7 +67,7 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
         IRunnable* _runnable;
         int _num_total_tasks;
         int _next_task;
-        int _finished_task;
+        int _num_done_tasks;
         bool _stop_running;
         void runTask();
 };
@@ -97,7 +97,7 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
         IRunnable* _runnable;
         int _num_total_tasks;
         int _next_task;
-        int _finished_task;
+        int _num_done_tasks;
         bool _stop_running;
         void runTask();
 };
