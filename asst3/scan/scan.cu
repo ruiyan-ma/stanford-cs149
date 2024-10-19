@@ -27,6 +27,33 @@ static inline int nextPow2(int n) {
     return n;
 }
 
+__global__ void
+upsweep_knl(int* output, int N, int two_d) {
+    int two_dplus1 = 2 * two_d;
+    int i = (blockIdx.x * blockDim.x + threadIdx.x) * two_dplus1;
+
+    if (i < N) {
+        output[i + two_dplus1 - 1] += output[i + two_d - 1];
+    }
+}
+
+__global__ void
+downsweep_knl(int* output, int N, int two_d) {
+    int two_dplus1 = 2 * two_d;
+    int i = (blockIdx.x * blockDim.x + threadIdx.x) * two_dplus1;
+
+    if (i < N) {
+        int temp = output[i + two_d - 1];
+        output[i + two_d - 1] = output[i + two_dplus1 - 1];
+        output[i + two_dplus1 - 1] += temp;
+    }
+}
+
+__global__ void
+set_zero_knl(int* output, int index) {
+    output[index] = 0;
+}
+
 // exclusive_scan --
 //
 // Implementation of an exclusive scan on global memory array `input`,
@@ -54,7 +81,29 @@ void exclusive_scan(int* input, int N, int* result)
     // to CUDA kernel functions (that you must write) to implement the
     // scan.
 
+    // set N to the next power-of-two
+    N = nextPow2(N);
 
+    // upsweep phase
+    for (int two_d = 1; two_d <= N / 2; two_d *= 2) {
+        int thread_num = N / (2 * two_d);
+        int blocks = (thread_num + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+        int threadsPerBlock = blocks == 1 ? thread_num : THREADS_PER_BLOCK;
+        upsweep_knl<<<blocks, threadsPerBlock>>>(result, N, two_d);
+        cudaDeviceSynchronize();
+    }
+
+    set_zero_knl<<<1, 1>>>(result, N - 1);
+    cudaDeviceSynchronize();
+
+    // downsweep phase
+    for (int two_d = N / 2; two_d >= 1; two_d /= 2) {
+        int thread_num = N / (2 * two_d);
+        int blocks = (thread_num + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+        int threadsPerBlock = blocks == 1 ? thread_num : THREADS_PER_BLOCK;
+        downsweep_knl<<<blocks, threadsPerBlock>>>(result, N, two_d);
+        cudaDeviceSynchronize();
+    }
 }
 
 
@@ -140,6 +189,33 @@ double cudaScanThrust(int* inarray, int* end, int* resultarray) {
     return overallDuration; 
 }
 
+// set_flag_knl: set flag when input[i] == input[i + 1]
+//
+// input:  [1, 2, 2, 1, 1, 1, 3, 5, 3, 3]
+// output: [0, 1, 0, 1, 1, 0, 0, 0, 1, 0]
+__global__ void
+set_flag_knl(int* input, int* output, int length) {
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index < length - 1) {
+        output[index] = input[index] == input[index + 1] ? 1 : 0;
+    }
+}
+
+// collect_index_knl: when flags[i] == 1, output.push_back(i)
+//
+// index:  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+// flags:  [0, 1, 0, 1, 1, 0, 0, 0, 1, 0]
+// prefix: [_, 0, _, 1, 2, _, _, _, 3, _]
+// output: [1, 3, 4, 8]
+__global__ void
+collect_index_knl(int* flags, int* prefix, int* output, int length) {
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index < length - 1) {
+        if (flags[index] == 1) {
+            output[prefix[index]] = index;
+        }
+    }
+}
 
 // find_repeats --
 //
@@ -161,7 +237,36 @@ int find_repeats(int* device_input, int length, int* device_output) {
     // must ensure that the results of find_repeats are correct given
     // the actual array length.
 
-    return 0; 
+    int rounded_length = nextPow2(length);
+    int blocks = (length + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    int threadsPerBlock = blocks == 1 ? length : THREADS_PER_BLOCK;
+
+    int* flags = nullptr;
+    int* prefix = nullptr;
+    cudaMalloc(&flags, rounded_length * sizeof(int));
+    cudaMalloc(&prefix, rounded_length * sizeof(int));
+
+    // input:  [1, 2, 2, 1, 1, 1, 3, 5, 3, 3]
+    // flags:  [0, 1, 0, 1, 1, 0, 0, 0, 1, 0]
+    // prefix: [0, 0, 1, 1, 2, 3, 3, 3, 3, 4]
+    set_flag_knl<<<blocks, threadsPerBlock>>>(device_input, flags, length);
+    cudaDeviceSynchronize();
+    exclusive_scan(flags, rounded_length, prefix);
+    cudaDeviceSynchronize();
+
+    // index:  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    // flags:  [0, 1, 0, 1, 1, 0, 0, 0, 1, 0]
+    // prefix: [_, 0, _, 1, 2, _, _, _, 3, _]
+    // output: [1, 3, 4, 8]
+    collect_index_knl<<<blocks, threadsPerBlock>>>(flags, prefix, device_output, length);
+    cudaDeviceSynchronize();
+
+    int repeat_count = 0;
+    cudaMemcpy(&repeat_count, prefix + length - 1, sizeof(int), cudaMemcpyDeviceToHost);
+
+    cudaFree(flags);
+    cudaFree(prefix);
+    return repeat_count; 
 }
 
 
